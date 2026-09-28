@@ -1,8 +1,18 @@
 const express = require('express');
 const app = express();
-app.use(express.json());
 const PORT = process.env.PORT || 3000;
-function pickVenue(symbol){symbol=symbol.toUpperCase();if(symbol.includes('BTC')||symbol.includes('ETH')||symbol.includes('SOL')||symbol.endsWith('USDT')){return 'binance';}return 'mt5';}
-app.get('/',(req,res)=>{res.send('Cedars of Wealth Bridge running');});
-app.post('/trade',async(req,res)=>{const{symbol,action,volume}=req.body;if(!symbol||!action){return res.status(400).json({status:'error'});}const venue=pickVenue(symbol);console.log(`Auto-routing ${action} ${symbol} -> ${venue}`);res.json({status:'ok',symbol,action,volume,result:{venue,status:'paper',routed:true}});});
-app.listen(PORT,()=>{console.log(`Running on ${PORT}`);});
+
+let logs = [];
+
+app.get('/', (req,res)=> res.send('Cedars Bridge Online'));
+app.get('/status', (req,res)=> res.json({online:true, trading: process.env.TRADING_ENABLED==='true', time: new Date().toISOString(), logs: logs.slice(-5)}));
+app.get('/feed', (req,res)=> res.json(logs.slice(-50)));
+
+setInterval(()=>{
+  const msg = `${new Date().toISOString()} - DEMO SIGNAL check - NO ORDER (TRADING_ENABLED=${process.env.TRADING_ENABLED})`;
+  console.log(msg);
+  logs.push(msg);
+  if(logs.length>200) logs.shift();
+}, 30000);
+
+app.listen(PORT, ()=> console.log(`Listening on ${PORT}`));
