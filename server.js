@@ -1,28 +1,67 @@
 const express = require('express');
+const WebSocket = require('ws');
 const app = express();
-
 app.use(express.json());
 
+let DERIV_BALANCE = 0;
+
 app.get('/', (req, res) => {
-  res.send('V17.1 REAL LIVE 10000 - Cedars Bridge Running!');
+  res.send('V18 REAL TRADER - Balance: $' + DERIV_BALANCE + ' - Live!');
 });
 
-app.post('/webhook', (req, res) => {
-  console.log('=== WEBHOOK RECEIVED ===');
-  console.log(req.body);
+app.post('/webhook', async (req, res) => {
+  console.log('WEBHOOK:', req.body);
+  const token = process.env.DERIV_TOKEN;
   
-  // Here you will add your Deriv trading logic
-  // For now just log it
+  if (!token) {
+    return res.json({ error: 'Add DERIV_TOKEN in Render Environment!' });
+  }
+
+  const ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
   
-  res.json({ status: 'ok', message: 'Trade signal received', data: req.body });
+  ws.on('open', () => {
+    ws.send(JSON.stringify({ authorize: token }));
+  });
+
+  ws.on('message', (msg) => {
+    const data = JSON.parse(msg);
+    console.log('DERIV:', data);
+    
+    if (data.authorize) {
+      DERIV_BALANCE = data.authorize.balance;
+      console.log('BALANCE: $' + DERIV_BALANCE);
+      ws.send(JSON.stringify({
+        buy: 1,
+        price: 1,
+        parameters: {
+          amount: 1,
+          basis: "stake",
+          contract_type: "CALL",
+          currency: "USD",
+          duration: 1,
+          duration_unit: "m",
+          symbol: "R_75"
+        }
+      }));
+    }
+    
+    if (data.buy) {
+      console.log('TRADE PLACED! ID:', data.buy.contract_id);
+      ws.close();
+      res.json({ status: 'Trade placed', contract_id: data.buy.contract_id, balance: DERIV_BALANCE });
+    }
+    
+    if (data.error) {
+      console.error('ERROR:', data.error);
+      ws.close();
+      res.json({ error: data.error });
+    }
+  });
 });
 
 app.post('/', (req, res) => {
-  console.log('POST ROOT:', req.body);
-  res.json({ status: 'ok' });
+  res.redirect(307, '/webhook');
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log('V18 running on ' + PORT));
