@@ -1,18 +1,16 @@
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
+app.get('/sol-balance', async (req, res) => {
+  try {
+    const wallet = req.query.wallet || "6XQv1XJ5EceCa2q6uGrnrsx8KSnLRSvXe7TMCFF6F1b";
+    const r = await fetch("https://api.mainnet-beta.solana.com", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [wallet] })
+    });
+    const j = await r.json();
+    res.json({ sol: j.result.value / 1e9, wallet });
+  } catch(e){
+    res.json({ sol: 0, error: e.message });
+  }
+});
 
-let logs = [];
-
-app.get('/', (req,res)=> res.send('Cedars Bridge Online'));
-app.get('/status', (req,res)=> res.json({online:true, trading: process.env.TRADING_ENABLED==='true', time: new Date().toISOString(), logs: logs.slice(-5)}));
-app.get('/feed', (req,res)=> res.json(logs.slice(-50)));
-
-setInterval(()=>{
-  const msg = `${new Date().toISOString()} - DEMO SIGNAL check - NO ORDER (TRADING_ENABLED=${process.env.TRADING_ENABLED})`;
-  console.log(msg);
-  logs.push(msg);
-  if(logs.length>200) logs.shift();
-}, 30000);
-
-app.listen(PORT, ()=> console.log(`Listening on ${PORT}`));
+app.get('/trade' // <- your existing code starts here
