@@ -1,8 +1,10 @@
 {
   "name": "cedars-bridge",
-  "version": "17.0.0-REAL-TRADING",
+  "version": "17.1.0-REAL",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
